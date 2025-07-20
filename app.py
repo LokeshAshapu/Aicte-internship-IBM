@@ -208,10 +208,16 @@ if input_df is not None:
 # ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.subheader("Model Parameters")
+
 if model:
     st.sidebar.markdown(f"- n_estimators: `{getattr(model, 'n_estimators', 'N/A')}`")
     st.sidebar.markdown(f"- max_depth: `{getattr(model, 'max_depth', 'N/A')}`")
 
 st.sidebar.subheader("Label Encoders")
-for col, le in encoders.items():
-    st.sidebar.markdown(f"**{col}**: {list(le.classes_)}")
+
+if encoders:
+    for col, le in encoders.items():
+        st.sidebar.markdown(f"**{col}**: {list(le.classes_)}")
+else:
+    st.sidebar.warning("Encoders not loaded. Please retrain the model.")
+
