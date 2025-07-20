@@ -55,24 +55,39 @@ def train_model():
 def safe_load_or_train():
     global model, encoders, trained
     try:
+        retrain = False
+
         if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
 
+            # Check for version compatibility
             if hasattr(model, '_sklearn_version'):
                 model_version = model._sklearn_version
                 current_version = sklearn.__version__
                 if model_version != current_version:
-                    raise ValueError(f"Incompatible model version: trained on {model_version}, current is {current_version}")
+                    st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
+                    retrain = True
+
+            # Ensure all required encoders exist
+            for col in ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'native-country', 'income']:
+                if col not in encoders:
+                    st.warning(f"Encoder for '{col}' is missing. Triggering retrain.")
+                    retrain = True
+                    break
+        else:
+            retrain = True
+
+        if retrain:
+            model, encoders, acc, rmse = train_model()
             trained = True
         else:
-            raise FileNotFoundError("Model files not found")
+            trained = True
+
     except Exception as e:
         st.warning(f"⚠️ Model loading failed: {e} - Re-training now...")
         model, encoders, acc, rmse = train_model()
         trained = True
-
-safe_load_or_train()
 
 # ----------------- Streamlit UI ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
