@@ -3,7 +3,6 @@ import numpy as np
 import streamlit as st
 import joblib
 import os
-import shutil
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -16,7 +15,7 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
 
-# ----------------- Load or Train ------------------
+# ----------------- Train Model ------------------
 def train_model():
     df = pd.read_csv(CSV_PATH)
     df.replace("?", np.nan, inplace=True)
@@ -38,35 +37,42 @@ def train_model():
     clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
     clf.fit(X_train, y_train)
 
-    acc = accuracy_score(y_test, clf.predict(X_test))
-    rmse = mean_squared_error(y_test, clf.predict(X_test), squared=False)
-
     os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    return clf, enc, acc, rmse
+    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
 
-# Always validate model compatibility
+# ----------------- Safe Load or Train ------------------
 model = None
 encoders = None
 trained = False
-accuracy = 0
-rmse = 0
 
-try:
-    if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
-        model = joblib.load(MODEL_PATH)
-        encoders = joblib.load(ENCODER_PATH)
+def safe_load_or_train():
+    global model, encoders, trained, accuracy, rmse
+
+    try:
+        if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
+            model = joblib.load(MODEL_PATH)
+            encoders = joblib.load(ENCODER_PATH)
+
+            # Check compatibility
+            dummy_df = pd.DataFrame([[25, 1, 1, 1, 40, 1]], columns=FEATURE_COLUMNS)
+            model.predict(dummy_df)
+
+            trained = True
+        else:
+            raise FileNotFoundError("Model files not found")
+
+    except Exception as e:
+        st.warning(f"⚠️ Model loading failed: {type(e).__name__} - Re-training...")
+        if os.path.exists(MODEL_DIR):
+            import shutil
+            shutil.rmtree(MODEL_DIR)
+        model, encoders, accuracy, rmse = train_model()
         trained = True
-    else:
-        raise Exception("Model files not found.")
-except Exception as e:
-    st.warning("⚠️ Model loading failed due to version mismatch or corruption. Re-training model...")
-    if os.path.exists(MODEL_DIR):
-        shutil.rmtree(MODEL_DIR)
-    model, encoders, accuracy, rmse = train_model()
-    trained = True
+
+safe_load_or_train()
 
 # ----------------- Streamlit UI ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
@@ -74,8 +80,6 @@ st.title("💼 Income Classification App")
 
 if trained:
     st.markdown("✅ **Model Ready for Prediction**")
-    if accuracy and rmse:
-        st.info(f"🎯 Accuracy: `{accuracy:.2f}` | RMSE: `{rmse:.2f}`")
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
@@ -105,7 +109,7 @@ def user_input():
 
 input_df, readable_input = user_input()
 
-# ----------------- Prediction ------------------
+# ----------------- Predict ------------------
 try:
     input_df = input_df[FEATURE_COLUMNS]
 
@@ -137,9 +141,8 @@ except Exception as e:
 # ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.subheader("Model Parameters")
-if model:
-    st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
-    st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
+st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
+st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
 
 st.sidebar.subheader("Label Encoders")
 for col, le in encoders.items():
