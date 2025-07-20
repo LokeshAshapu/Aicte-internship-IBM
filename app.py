@@ -102,7 +102,9 @@ if st.button("Predict Income Category"):
 
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.write("### 📦 Model Summary")
-st.sidebar.write(model)
+st.sidebar.write("Model Parameters:")
+st.sidebar.json(model.get_params())
+
 
 st.sidebar.write("### 🔤 Encoders")
 for col, le in encoders.items():
