@@ -6,7 +6,7 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import accuracy_score
 
 # ----------------- Constants ------------------
 MODEL_DIR = "models"
@@ -45,7 +45,7 @@ def train_model():
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
+    return clf, enc, accuracy_score(y_test, clf.predict(X_test))
 
 # Load or train model
 try:
@@ -57,7 +57,7 @@ try:
         raise FileNotFoundError("Model files not found")
 except:
     st.warning("⚠️ Model loading failed. Training new model...")
-    model, encoders, acc, rmse = train_model()
+    model, encoders, acc = train_model()
     trained = True
 
 # ----------------- Streamlit UI ------------------
@@ -111,7 +111,7 @@ try:
         st.info(f"🔐 Confidence: `{confidence:.2f}%`")
 
         st.markdown("### 🧾 Your Inputs")
-        st.table(readable_input)
+        st.dataframe(pd.DataFrame(readable_input.items(), columns=["Feature", "Value"]))
 
         st.markdown("### 📊 Prediction Probabilities")
         prob_df = pd.DataFrame({
