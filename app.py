@@ -22,31 +22,32 @@ trained = False
 
 # ----------------- Train Model ------------------
 def train_model():
-    df = pd.read_csv(CSV_PATH)
-    df.replace("?", np.nan, inplace=True)
-    df.dropna(inplace=True)
+    df = pd.read_csv(DATA_PATH)
 
-    target_column = "income"
-    categorical_cols = ["education", "marital-status", "occupation", "gender", "income"]
+    X = df.drop("income", axis=1)
+    y = df["income"]
 
     enc = {}
-    for col in categorical_cols:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        enc[col] = le
-
-    X = df[FEATURE_COLUMNS]
-    y = df[target_column]
+    for col in X.select_dtypes(include=["object"]).columns:
+        enc[col] = LabelEncoder()
+        X[col] = enc[col].fit_transform(X[col])
+    enc["income"] = LabelEncoder()
+    y = enc["income"].fit_transform(y)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
+    clf = RandomForestClassifier()
     clf.fit(X_train, y_train)
 
-    os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
+    # Compatibility-safe RMSE
+    mse = mean_squared_error(y_test, clf.predict(X_test))
+    rmse = mse ** 0.5
+
+    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), rmse
+
+
 
 # ----------------- Load or Train (Safe) ------------------
 def safe_load_or_train():
