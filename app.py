@@ -23,7 +23,7 @@ DATA_PATH = "data.csv"  # Update this to the correct file path
 
 # ----------------- Train Model ------------------
 def train_model():
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(CSV_PATH)
 
     X = df.drop("income", axis=1)
     y = df["income"]
