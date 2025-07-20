@@ -1,4 +1,3 @@
-# app.py
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -9,49 +8,67 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, mean_squared_error
 
+# ----------------- Constants ------------------
 MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "income_classifier.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
+CSV_PATH = "adult 3.csv"
+FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
 
-if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
-    model = joblib.load(MODEL_PATH)
-    encoders = joblib.load(ENCODER_PATH)
-    trained = True
-else:
-    df = pd.read_csv("adult 3.csv")
+# ----------------- Load or Train ------------------
+model = None
+encoders = None
+trained = False
+
+def train_model():
+    df = pd.read_csv(CSV_PATH)
     df.replace("?", np.nan, inplace=True)
     df.dropna(inplace=True)
 
-    selected_features = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
     target_column = "income"
     categorical_cols = ["education", "marital-status", "occupation", "gender", "income"]
 
-    encoders = {}
+    enc = {}
     for col in categorical_cols:
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col])
-        encoders[col] = le
+        enc[col] = le
 
-    X = df[selected_features]
+    X = df[FEATURE_COLUMNS]
     y = df[target_column]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
-    model.fit(X_train, y_train)
+    clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
+    clf.fit(X_train, y_train)
 
-    accuracy = accuracy_score(y_test, model.predict(X_test))
-    rmse = mean_squared_error(y_test, model.predict(X_test), squared=False)
-    trained = True
+    acc = accuracy_score(y_test, clf.predict(X_test))
+    rmse = mean_squared_error(y_test, clf.predict(X_test), squared=False)
 
     os.makedirs(MODEL_DIR, exist_ok=True)
-    joblib.dump(model, MODEL_PATH)
-    joblib.dump(encoders, ENCODER_PATH)
+    joblib.dump(clf, MODEL_PATH)
+    joblib.dump(enc, ENCODER_PATH)
 
+    return clf, enc, acc, rmse
+
+# Try loading existing model
+try:
+    if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
+        model = joblib.load(MODEL_PATH)
+        encoders = joblib.load(ENCODER_PATH)
+        trained = True
+    else:
+        raise FileNotFoundError("Model files missing")
+except Exception as e:
+    st.warning("⚠️ Model loading failed, training new model...")
+    model, encoders, accuracy, rmse = train_model()
+    trained = True
+
+# ----------------- Streamlit UI ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
 st.title("💼 Income Classification App")
 
 if trained:
-    st.markdown(f"✅ **Model Loaded Successfully**")
+    st.markdown("✅ **Model Ready**")
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
@@ -81,12 +98,12 @@ def user_input():
 
 input_df, readable_input = user_input()
 
-# Ensure correct column structure and no NaNs
+# ----------------- Predict ------------------
 try:
     input_df = input_df[FEATURE_COLUMNS]
 
     if input_df.isnull().values.any():
-        st.error("❌ Some required fields are missing. Please complete all inputs.")
+        st.error("❌ Some required fields are missing.")
     else:
         pred = model.predict(input_df)[0]
         prob = model.predict_proba(input_df)[0]
@@ -105,22 +122,16 @@ try:
             "Probability": prob
         })
         st.bar_chart(prob_df.set_index("Category"))
-except KeyError as e:
-    st.error(f"❌ Missing required column: {e}")
 except Exception as e:
-    st.error("🚨 An unexpected error occurred during prediction.")
+    st.error("🚨 Unexpected error during prediction.")
     st.exception(e)
+
+# ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
-st.sidebar.write("### 📦 Model Summary")
-# Safely display key parameters
-st.sidebar.header("Model Overview")
-st.sidebar.text("RandomForestClassifier:")
-st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
-st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
-st.sidebar.markdown(f"- random_state: `{model.random_state}`")
+st.sidebar.subheader("Model Details")
+st.sidebar.markdown(f"- **n_estimators**: `{model.n_estimators}`")
+st.sidebar.markdown(f"- **max_depth**: `{model.max_depth}`")
 
-
-
-st.sidebar.write("### 🔤 Encoders")
+st.sidebar.subheader("Label Encoders")
 for col, le in encoders.items():
     st.sidebar.write(f"**{col}**: {list(le.classes_)}")
