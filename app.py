@@ -6,7 +6,7 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import accuracy_score
 
 # ----------------- Constants ------------------
 MODEL_DIR = "models"
@@ -41,45 +41,37 @@ def train_model():
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
+    accuracy = accuracy_score(y_test, clf.predict(X_test))
+    return clf, enc, accuracy
 
-# ----------------- Safe Load or Train ------------------
-model = None
-encoders = None
-trained = False
-
+# ----------------- Load or Train ------------------
 def safe_load_or_train():
-    global model, encoders, trained, accuracy, rmse
-
     try:
         if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
-
-            # Check compatibility
-            dummy_df = pd.DataFrame([[25, 1, 1, 1, 40, 1]], columns=FEATURE_COLUMNS)
-            model.predict(dummy_df)
-
             trained = True
+            accuracy = None
         else:
             raise FileNotFoundError("Model files not found")
 
     except Exception as e:
-        st.warning(f"⚠️ Model loading failed: {type(e).__name__} - Re-training...")
-        if os.path.exists(MODEL_DIR):
-            import shutil
-            shutil.rmtree(MODEL_DIR)
-        model, encoders, accuracy, rmse = train_model()
+        st.warning(f"⚠️ Model loading failed: {e} - Re-training...")
+        model, encoders, accuracy = train_model()
         trained = True
 
-safe_load_or_train()
+    return model, encoders, trained, accuracy
 
-# ----------------- Streamlit UI ------------------
+# ----------------- UI Setup ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
 st.title("💼 Income Classification App")
 
+model, encoders, trained, accuracy = safe_load_or_train()
+
 if trained:
     st.markdown("✅ **Model Ready for Prediction**")
+    if accuracy:
+        st.markdown(f"🎯 **Training Accuracy:** `{accuracy * 100:.2f}%`")
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
