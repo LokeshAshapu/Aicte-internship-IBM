@@ -102,8 +102,13 @@ if st.button("Predict Income Category"):
 
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.write("### 📦 Model Summary")
-st.sidebar.write("Model Parameters:")
-st.sidebar.json(model.get_params())
+# Safely display key parameters
+st.sidebar.header("Model Overview")
+st.sidebar.text("RandomForestClassifier:")
+st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
+st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
+st.sidebar.markdown(f"- random_state: `{model.random_state}`")
+
 
 
 st.sidebar.write("### 🔤 Encoders")
