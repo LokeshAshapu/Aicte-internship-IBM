@@ -81,30 +81,35 @@ def user_input():
 
 input_df, readable_input = user_input()
 
-# Ensure feature order and no missing values
+# Ensure correct column structure and no NaNs
+try:
+    input_df = input_df[FEATURE_COLUMNS]
 
-if input_df.isnull().values.any():
-    st.error("🚫 Input contains missing values. Please fill all fields.")
-else:
-    pred = model.predict(input_df)[0]
-    prob = model.predict_proba(input_df)[0]
-    label = encoders["income"].inverse_transform([pred])[0]
-    confidence = prob[pred] * 100
+    if input_df.isnull().values.any():
+        st.error("❌ Some required fields are missing. Please complete all inputs.")
+    else:
+        pred = model.predict(input_df)[0]
+        prob = model.predict_proba(input_df)[0]
+        label = encoders["income"].inverse_transform([pred])[0]
+        confidence = prob[pred] * 100
 
-    st.success(f"💰 Predicted Income Category: `{label}`")
-    st.info(f"🔐 Confidence: `{confidence:.2f}%`")
+        st.success(f"💰 Predicted Income Category: `{label}`")
+        st.info(f"🔐 Confidence: `{confidence:.2f}%`")
 
+        st.markdown("### 🧾 Your Inputs")
+        st.table(readable_input)
 
-    st.markdown("### 🧾 Your Inputs")
-    st.table(readable_input)
-
-    st.markdown("### 📊 Prediction Probabilities")
-    prob_df = pd.DataFrame({
-        "Category": encoders["income"].classes_,
-        "Probability": prob
-    })
-    st.bar_chart(prob_df.set_index("Category"))
-
+        st.markdown("### 📊 Prediction Probabilities")
+        prob_df = pd.DataFrame({
+            "Category": encoders["income"].classes_,
+            "Probability": prob
+        })
+        st.bar_chart(prob_df.set_index("Category"))
+except KeyError as e:
+    st.error(f"❌ Missing required column: {e}")
+except Exception as e:
+    st.error("🚨 An unexpected error occurred during prediction.")
+    st.exception(e)
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.write("### 📦 Model Summary")
 # Safely display key parameters
