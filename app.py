@@ -82,7 +82,6 @@ def user_input():
 input_df, readable_input = user_input()
 
 # Ensure feature order and no missing values
-input_df = input_df[FEATURE_COLUMNS]
 
 if input_df.isnull().values.any():
     st.error("🚫 Input contains missing values. Please fill all fields.")
