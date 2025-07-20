@@ -41,26 +41,23 @@ def train_model():
     clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
     clf.fit(X_train, y_train)
 
-    acc = accuracy_score(y_test, clf.predict(X_test))
-    rmse = mean_squared_error(y_test, clf.predict(X_test), squared=False)
-
     os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    return clf, enc, acc, rmse
+    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
 
-# Try loading existing model
+# Load or train model
 try:
     if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
         model = joblib.load(MODEL_PATH)
         encoders = joblib.load(ENCODER_PATH)
         trained = True
     else:
-        raise FileNotFoundError("Model files missing")
-except Exception as e:
-    st.warning("⚠️ Model loading failed, training new model...")
-    model, encoders, accuracy, rmse = train_model()
+        raise FileNotFoundError("Model files not found")
+except:
+    st.warning("⚠️ Model loading failed. Training new model...")
+    model, encoders, acc, rmse = train_model()
     trained = True
 
 # ----------------- Streamlit UI ------------------
@@ -68,7 +65,7 @@ st.set_page_config(page_title="Income Classifier", layout="centered")
 st.title("💼 Income Classification App")
 
 if trained:
-    st.markdown("✅ **Model Ready**")
+    st.markdown("✅ **Model Ready for Prediction**")
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
@@ -98,7 +95,7 @@ def user_input():
 
 input_df, readable_input = user_input()
 
-# ----------------- Predict ------------------
+# ----------------- Prediction ------------------
 try:
     input_df = input_df[FEATURE_COLUMNS]
 
@@ -122,16 +119,17 @@ try:
             "Probability": prob
         })
         st.bar_chart(prob_df.set_index("Category"))
+
 except Exception as e:
     st.error("🚨 Unexpected error during prediction.")
     st.exception(e)
 
 # ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
-st.sidebar.subheader("Model Details")
-st.sidebar.markdown(f"- **n_estimators**: `{model.n_estimators}`")
-st.sidebar.markdown(f"- **max_depth**: `{model.max_depth}`")
+st.sidebar.subheader("Model Parameters")
+st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
+st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
 
 st.sidebar.subheader("Label Encoders")
 for col, le in encoders.items():
-    st.sidebar.write(f"**{col}**: {list(le.classes_)}")
+    st.sidebar.markdown(f"**{col}**: {list(le.classes_)}")
