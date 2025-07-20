@@ -14,7 +14,11 @@ MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "income_classifier.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
-FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
+FEATURE_COLUMNS = [
+    'age', 'workclass', 'fnlwgt', 'education', 'educational-num',
+    'marital-status', 'occupation', 'relationship', 'race', 'sex',
+    'capital-gain', 'capital-loss', 'hours-per-week', 'native-country'
+]
 
 model = None
 encoders = None
@@ -90,14 +94,25 @@ def user_input():
     hours = st.slider("Hours Worked Per Week", 1, 99, 40)
     gender = st.selectbox("Gender", encoders["gender"].classes_)
 
-    input_dict = {
-        "age": age,
-        "education": encoders["education"].transform([education])[0],
-        "marital-status": encoders["marital-status"].transform([marital_status])[0],
-        "occupation": encoders["occupation"].transform([occupation])[0],
-        "hours-per-week": hours,
-        "gender": encoders["gender"].transform([gender])[0],
-    }
+   input_dict = {
+    "age": age,
+    "workclass": workclass,
+    "fnlwgt": fnlwgt,
+    "education": education,
+    "educational-num": education_num,
+    "marital-status": marital_status,
+    "occupation": occupation,
+    "relationship": relationship,
+    "race": race,
+    "sex": gender,
+    "capital-gain": capital_gain,
+    "capital-loss": capital_loss,
+    "hours-per-week": hours_per_week,
+    "native-country": native_country
+}
+
+input_df = pd.DataFrame([input_dict])
+
     readable = {
         "Age": age,
         "Education": education,
