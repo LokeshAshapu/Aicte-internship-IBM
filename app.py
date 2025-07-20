@@ -88,42 +88,56 @@ if trained:
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
+    workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
+    fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
     education = st.selectbox("Education", encoders["education"].classes_)
+    education_num = st.slider("Education Number", 1, 16, 10)
     marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
     occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
-    hours = st.slider("Hours Worked Per Week", 1, 99, 40)
-    gender = st.selectbox("Gender", encoders["gender"].classes_)
+    relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
+    race = st.selectbox("Race", encoders["race"].classes_)
+    gender = st.selectbox("Gender", encoders["sex"].classes_)
+    capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
+    capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
+    hours_per_week = st.slider("Hours per Week", 1, 99, 40)
+    native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
 
-   input_dict = {
-    "age": age,
-    "workclass": workclass,
-    "fnlwgt": fnlwgt,
-    "education": education,
-    "educational-num": education_num,
-    "marital-status": marital_status,
-    "occupation": occupation,
-    "relationship": relationship,
-    "race": race,
-    "sex": gender,
-    "capital-gain": capital_gain,
-    "capital-loss": capital_loss,
-    "hours-per-week": hours_per_week,
-    "native-country": native_country
-}
+    input_dict = {
+        "age": age,
+        "workclass": encoders["workclass"].transform([workclass])[0],
+        "fnlwgt": fnlwgt,
+        "education": encoders["education"].transform([education])[0],
+        "educational-num": education_num,
+        "marital-status": encoders["marital-status"].transform([marital_status])[0],
+        "occupation": encoders["occupation"].transform([occupation])[0],
+        "relationship": encoders["relationship"].transform([relationship])[0],
+        "race": encoders["race"].transform([race])[0],
+        "sex": encoders["sex"].transform([gender])[0],
+        "capital-gain": capital_gain,
+        "capital-loss": capital_loss,
+        "hours-per-week": hours_per_week,
+        "native-country": encoders["native-country"].transform([native_country])[0],
+    }
 
-input_df = pd.DataFrame([input_dict])
-
-    readable = {
+    readable_input = {
         "Age": age,
+        "Workclass": workclass,
+        "Fnlwgt": fnlwgt,
         "Education": education,
+        "Education Num": education_num,
         "Marital Status": marital_status,
         "Occupation": occupation,
-        "Hours/Week": hours,
+        "Relationship": relationship,
+        "Race": race,
         "Gender": gender,
+        "Capital Gain": capital_gain,
+        "Capital Loss": capital_loss,
+        "Hours per Week": hours_per_week,
+        "Native Country": native_country
     }
-    return pd.DataFrame([input_dict]), readable
 
-input_df, readable_input = user_input()
+    return pd.DataFrame([input_dict]), readable_input
+
 
 # ----------------- Prediction ------------------
 try:
