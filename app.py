@@ -220,4 +220,8 @@ if encoders:
         st.sidebar.markdown(f"**{col}**: {list(le.classes_)}")
 else:
     st.sidebar.warning("Encoders not loaded. Please retrain the model.")
+if st.sidebar.button("🔁 Retrain Model"):
+    with st.spinner("Retraining model..."):
+        model, encoders, acc, rmse = train_model()
+        st.sidebar.success("✅ Model retrained!")
 
