@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 import joblib
 import os
+import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -15,11 +16,11 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
 
-# ----------------- Load or Train ------------------
 model = None
 encoders = None
 trained = False
 
+# ----------------- Train Model ------------------
 def train_model():
     df = pd.read_csv(CSV_PATH)
     df.replace("?", np.nan, inplace=True)
@@ -47,18 +48,22 @@ def train_model():
 
     return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
 
-# Load or train model
+# ----------------- Load or Train (Safe) ------------------
 def safe_load_or_train():
     global model, encoders, trained
     try:
         if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
+
+            # Check version mismatch
+            if hasattr(model, '_sklearn_version') and model._sklearn_version != sklearn.__version__:
+                raise ValueError("❌ Model trained with incompatible scikit-learn version.")
             trained = True
         else:
             raise FileNotFoundError("Model files not found")
-    except:
-        st.warning("⚠️ Model loading failed. Re-training...")
+    except Exception as e:
+        st.warning(f"⚠️ Model loading failed: {e} - Re-training...")
         model, encoders, acc, rmse = train_model()
         trained = True
 
@@ -115,7 +120,7 @@ try:
         st.info(f"🔐 Confidence: `{confidence:.2f}%`")
 
         st.markdown("### 🧾 Your Inputs")
-        st.table(pd.DataFrame([readable_input]).astype(str))  # ✅ Fix here
+        st.table(pd.DataFrame([readable_input]))
 
         st.markdown("### 📊 Prediction Probabilities")
         prob_df = pd.DataFrame({
@@ -123,6 +128,7 @@ try:
             "Probability": prob
         })
         st.bar_chart(prob_df.set_index("Category"))
+
 except Exception as e:
     st.error("🚨 Unexpected error during prediction.")
     st.exception(e)
@@ -130,8 +136,9 @@ except Exception as e:
 # ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
 st.sidebar.subheader("Model Parameters")
-st.sidebar.markdown(f"- n_estimators: `{model.n_estimators}`")
-st.sidebar.markdown(f"- max_depth: `{model.max_depth}`")
+if model:
+    st.sidebar.markdown(f"- n_estimators: `{getattr(model, 'n_estimators', 'N/A')}`")
+    st.sidebar.markdown(f"- max_depth: `{getattr(model, 'max_depth', 'N/A')}`")
 
 st.sidebar.subheader("Label Encoders")
 for col, le in encoders.items():
