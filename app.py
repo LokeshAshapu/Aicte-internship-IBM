@@ -56,16 +56,20 @@ def safe_load_or_train():
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
 
-            # Check version mismatch
-            if hasattr(model, '_sklearn_version') and model._sklearn_version != sklearn.__version__:
-                raise ValueError("❌ Model trained with incompatible scikit-learn version.")
+            # Check for version compatibility
+            if hasattr(model, '_sklearn_version'):
+                model_version = model._sklearn_version
+                current_version = sklearn.__version__
+                if model_version != current_version:
+                    raise ValueError(f"Incompatible model version: trained on {model_version}, current is {current_version}")
             trained = True
         else:
             raise FileNotFoundError("Model files not found")
     except Exception as e:
-        st.warning(f"⚠️ Model loading failed: {e} - Re-training...")
+        st.warning(f"⚠️ Model loading failed: {e} - Re-training now...")
         model, encoders, acc, rmse = train_model()
         trained = True
+
 
 safe_load_or_train()
 
@@ -111,8 +115,16 @@ try:
     if input_df.isnull().values.any():
         st.error("❌ Some required fields are missing.")
     else:
-        pred = model.predict(input_df)[0]
-        prob = model.predict_proba(input_df)[0]
+        # Some older model attributes might break predict_proba in newer versions
+        try:
+            pred = model.predict(input_df)[0]
+            prob = model.predict_proba(input_df)[0]
+        except AttributeError as err:
+            st.error("🚨 Prediction failed due to model incompatibility. Retraining...")
+            model, encoders, acc, rmse = train_model()
+            pred = model.predict(input_df)[0]
+            prob = model.predict_proba(input_df)[0]
+
         label = encoders["income"].inverse_transform([pred])[0]
         confidence = prob[pred] * 100
 
