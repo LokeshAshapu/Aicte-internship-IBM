@@ -15,7 +15,8 @@ MODEL_PATH = os.path.join(MODEL_DIR, "income_classifier.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = [
-    'age', 'education', 'occupation', 'hours-per-week', 'gender'
+    'age', 'education', 'occupation', 'hours-per-week', 'gender',
+    'capital-gain', 'capital-loss', 'marital-status'
 ]
 
 model = None
@@ -66,12 +67,11 @@ def safe_load_or_train():
                     st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
                     retrain = True
 
-            for col in ['education', 'occupation', 'gender', 'income']:
-                if col not in encoders:
+            for col in FEATURE_COLUMNS + ['income']:
+                if col not in encoders and df[col].dtype == 'object':
                     st.warning(f"Encoder for '{col}' is missing. Triggering retrain.")
                     retrain = True
                     break
-
         else:
             retrain = True
 
@@ -102,7 +102,7 @@ def user_input():
         st.error("❌ Encoders not available. Please retrain the model.")
         return None, None
 
-    required_keys = ['education', 'occupation', 'gender']
+    required_keys = ['education', 'occupation', 'gender', 'marital-status']
     missing = [key for key in required_keys if key not in encoders]
     if missing:
         st.error(f"❌ Missing encoders for: {', '.join(missing)}. Please check your dataset or retrain the model.")
@@ -113,6 +113,9 @@ def user_input():
     occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
     hours_per_week = st.slider("Hours per Week", 1, 99, 40)
     gender = st.selectbox("Gender", encoders["gender"].classes_)
+    capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
+    capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
+    marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
 
     input_dict = {
         "age": age,
@@ -120,6 +123,9 @@ def user_input():
         "occupation": encoders["occupation"].transform([occupation])[0],
         "hours-per-week": hours_per_week,
         "gender": encoders["gender"].transform([gender])[0],
+        "capital-gain": capital_gain,
+        "capital-loss": capital_loss,
+        "marital-status": encoders["marital-status"].transform([marital_status])[0],
     }
 
     readable_input = {
@@ -127,7 +133,10 @@ def user_input():
         "Education": education,
         "Occupation": occupation,
         "Hours per Week": hours_per_week,
-        "Gender": gender
+        "Gender": gender,
+        "Capital Gain": capital_gain,
+        "Capital Loss": capital_loss,
+        "Marital Status": marital_status
     }
 
     return pd.DataFrame([input_dict]), readable_input
