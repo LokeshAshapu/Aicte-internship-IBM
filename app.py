@@ -79,16 +79,22 @@ def user_input():
     }
     return pd.DataFrame([input_dict]), readable
 
-input_df, readable_input = user_input()
+FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
 
-if st.button("Predict Income Category"):
+# Ensure feature order and no missing values
+input_df = input_df[FEATURE_COLUMNS]
+
+if input_df.isnull().values.any():
+    st.error("🚫 Input contains missing values. Please fill all fields.")
+else:
     pred = model.predict(input_df)[0]
     prob = model.predict_proba(input_df)[0]
     label = encoders["income"].inverse_transform([pred])[0]
     confidence = prob[pred] * 100
 
     st.success(f"💰 Predicted Income Category: `{label}`")
-    st.info(f"🔐 Model Confidence: `{confidence:.2f}%`")
+    st.info(f"🔐 Confidence: `{confidence:.2f}%`")
+
 
     st.markdown("### 🧾 Your Inputs")
     st.table(readable_input)
