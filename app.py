@@ -98,24 +98,30 @@ if trained:
 
 def user_input():
     st.markdown("### 📝 Enter your details below")
+
+    required_keys = ['workclass', 'education', 'marital-status', 'occupation',
+                     'relationship', 'race', 'sex', 'native-country']
+    
+    # Check if encoders contain all required keys
+    for key in required_keys:
+        if key not in encoders:
+            st.error(f"❌ Encoder missing for column: `{key}`. Please retrain the model using a complete dataset.")
+            return None, None
+
     age = st.slider("Age", 18, 90, 30)
-    try:
-        workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
-        fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
-        education = st.selectbox("Education", encoders["education"].classes_)
-        education_num = st.slider("Education Number", 1, 16, 10)
-        marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
-        occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
-        relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
-        race = st.selectbox("Race", encoders["race"].classes_)
-        gender = st.selectbox("Gender", encoders["sex"].classes_)
-        capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
-        capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
-        hours_per_week = st.slider("Hours per Week", 1, 99, 40)
-        native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
-    except KeyError as e:
-        st.error(f"Encoder missing for column: {e}. Please retrain the model.")
-        return None, None
+    workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
+    fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
+    education = st.selectbox("Education", encoders["education"].classes_)
+    education_num = st.slider("Education Number", 1, 16, 10)
+    marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
+    occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
+    relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
+    race = st.selectbox("Race", encoders["race"].classes_)
+    gender = st.selectbox("Gender", encoders["sex"].classes_)
+    capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
+    capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
+    hours_per_week = st.slider("Hours per Week", 1, 99, 40)
+    native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
 
     input_dict = {
         "age": age,
