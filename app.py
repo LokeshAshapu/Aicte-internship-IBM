@@ -6,7 +6,7 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, mean_squared_error
 
 # ----------------- Constants ------------------
 MODEL_DIR = "models"
@@ -15,7 +15,11 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
 
-# ----------------- Train Model ------------------
+# ----------------- Load or Train ------------------
+model = None
+encoders = None
+trained = False
+
 def train_model():
     df = pd.read_csv(CSV_PATH)
     df.replace("?", np.nan, inplace=True)
@@ -41,37 +45,31 @@ def train_model():
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    accuracy = accuracy_score(y_test, clf.predict(X_test))
-    return clf, enc, accuracy
+    return clf, enc, accuracy_score(y_test, clf.predict(X_test)), mean_squared_error(y_test, clf.predict(X_test), squared=False)
 
-# ----------------- Load or Train ------------------
+# Load or train model
 def safe_load_or_train():
+    global model, encoders, trained
     try:
         if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
             trained = True
-            accuracy = None
         else:
             raise FileNotFoundError("Model files not found")
-
-    except Exception as e:
-        st.warning(f"⚠️ Model loading failed: {e} - Re-training...")
-        model, encoders, accuracy = train_model()
+    except:
+        st.warning("⚠️ Model loading failed. Re-training...")
+        model, encoders, acc, rmse = train_model()
         trained = True
 
-    return model, encoders, trained, accuracy
+safe_load_or_train()
 
-# ----------------- UI Setup ------------------
+# ----------------- Streamlit UI ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
 st.title("💼 Income Classification App")
 
-model, encoders, trained, accuracy = safe_load_or_train()
-
 if trained:
     st.markdown("✅ **Model Ready for Prediction**")
-    if accuracy:
-        st.markdown(f"🎯 **Training Accuracy:** `{accuracy * 100:.2f}%`")
 
 def user_input():
     age = st.slider("Age", 18, 90, 30)
@@ -101,7 +99,7 @@ def user_input():
 
 input_df, readable_input = user_input()
 
-# ----------------- Predict ------------------
+# ----------------- Prediction ------------------
 try:
     input_df = input_df[FEATURE_COLUMNS]
 
@@ -117,7 +115,7 @@ try:
         st.info(f"🔐 Confidence: `{confidence:.2f}%`")
 
         st.markdown("### 🧾 Your Inputs")
-        st.table(readable_input)
+        st.table(pd.DataFrame([readable_input]).astype(str))  # ✅ Fix here
 
         st.markdown("### 📊 Prediction Probabilities")
         prob_df = pd.DataFrame({
@@ -125,7 +123,6 @@ try:
             "Probability": prob
         })
         st.bar_chart(prob_df.set_index("Category"))
-
 except Exception as e:
     st.error("🚨 Unexpected error during prediction.")
     st.exception(e)
