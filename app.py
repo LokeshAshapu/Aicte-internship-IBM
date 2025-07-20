@@ -23,10 +23,11 @@ model = None
 encoders = None
 trained = False
 
+df = pd.read_csv(CSV_PATH)  # Load once for schema validation
+
 # ----------------- Train Model ------------------
 def train_model():
-    df = pd.read_csv(CSV_PATH)
-
+    global df
     X = df[FEATURE_COLUMNS]
     y = df["income"]
 
@@ -68,7 +69,7 @@ def safe_load_or_train():
                     retrain = True
 
             for col in FEATURE_COLUMNS + ['income']:
-                if col not in encoders and df[col].dtype == 'object':
+                if df[col].dtype == 'object' and col not in encoders:
                     st.warning(f"Encoder for '{col}' is missing. Triggering retrain.")
                     retrain = True
                     break
