@@ -23,7 +23,6 @@ FEATURE_COLUMNS = [
 model = None
 encoders = None
 trained = False
-DATA_PATH = "data.csv"  # Update this to the correct file path
 
 # ----------------- Train Model ------------------
 def train_model():
@@ -43,6 +42,7 @@ def train_model():
     clf = RandomForestClassifier()
     clf.fit(X_train, y_train)
 
+    os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
@@ -51,8 +51,6 @@ def train_model():
     rmse = mse ** 0.5
 
     return clf, enc, accuracy_score(y_test, clf.predict(X_test)), rmse
-
-
 
 # ----------------- Load or Train (Safe) ------------------
 def safe_load_or_train():
@@ -76,7 +74,7 @@ def safe_load_or_train():
         model, encoders, acc, rmse = train_model()
         trained = True
 
-
+# Call safe load/train
 safe_load_or_train()
 
 # ----------------- Streamlit UI ------------------
@@ -86,6 +84,7 @@ st.title("💼 Income Classification App")
 if trained:
     st.markdown("✅ **Model Ready for Prediction**")
 
+# ----------------- User Input ------------------
 def user_input():
     age = st.slider("Age", 18, 90, 30)
     workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
@@ -138,19 +137,19 @@ def user_input():
 
     return pd.DataFrame([input_dict]), readable_input
 
-
 # ----------------- Prediction ------------------
+input_df, readable_input = user_input()
+
 try:
     input_df = input_df[FEATURE_COLUMNS]
 
     if input_df.isnull().values.any():
         st.error("❌ Some required fields are missing.")
     else:
-        # Some older model attributes might break predict_proba in newer versions
         try:
             pred = model.predict(input_df)[0]
             prob = model.predict_proba(input_df)[0]
-        except AttributeError as err:
+        except AttributeError:
             st.error("🚨 Prediction failed due to model incompatibility. Retraining...")
             model, encoders, acc, rmse = train_model()
             pred = model.predict(input_df)[0]
