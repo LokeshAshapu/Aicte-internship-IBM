@@ -61,12 +61,12 @@ def safe_load_or_train():
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
 
-            if hasattr(model, '_sklearn_version'):
-                model_version = model._sklearn_version
-                current_version = sklearn.__version__
-                if model_version != current_version:
-                    st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
-                    retrain = True
+            model_version = getattr(model, '_sklearn_version', None)
+            current_version = sklearn.__version__
+            if model_version and model_version != current_version:
+                st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
+                retrain = True
+
 
             for col in FEATURE_COLUMNS + ['income']:
                 if df[col].dtype == 'object' and col not in encoders:
