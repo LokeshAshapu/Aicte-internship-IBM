@@ -16,7 +16,7 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = [
     'age', 'workclass', 'fnlwgt', 'education', 'educational-num',
-    'marital-status', 'occupation', 'relationship', 'race', 'sex',
+    'marital-status', 'occupation', 'relationship', 'race', 'gender',
     'capital-gain', 'capital-loss', 'hours-per-week', 'native-country'
 ]
 
@@ -105,7 +105,7 @@ def user_input():
 
     required_keys = [
         'workclass', 'education', 'marital-status', 'occupation',
-        'relationship', 'race', 'sex', 'native-country'
+        'relationship', 'race', 'gender', 'native-country'
     ]
 
     missing = [key for key in required_keys if key not in encoders]
@@ -122,7 +122,7 @@ def user_input():
     occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
     relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
     race = st.selectbox("Race", encoders["race"].classes_)
-    gender = st.selectbox("Gender", encoders["sex"].classes_)
+    gender = st.selectbox("Gender", encoders["gender"].classes_)
     capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
     capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
     hours_per_week = st.slider("Hours per Week", 1, 99, 40)
@@ -138,7 +138,7 @@ def user_input():
         "occupation": encoders["occupation"].transform([occupation])[0],
         "relationship": encoders["relationship"].transform([relationship])[0],
         "race": encoders["race"].transform([race])[0],
-        "sex": encoders["sex"].transform([gender])[0],
+        "gender": encoders["gender"].transform([gender])[0],
         "capital-gain": capital_gain,
         "capital-loss": capital_loss,
         "hours-per-week": hours_per_week,
