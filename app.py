@@ -99,14 +99,20 @@ if trained:
 def user_input():
     st.markdown("### 📝 Enter your details below")
 
-    required_keys = ['workclass', 'education', 'marital-status', 'occupation',
-                     'relationship', 'race', 'sex', 'native-country']
-    
-    # Check if encoders contain all required keys
-    for key in required_keys:
-        if key not in encoders:
-            st.error(f"❌ Encoder missing for column: `{key}`. Please retrain the model using a complete dataset.")
-            return None, None
+    if not encoders:
+        st.error("❌ Encoders not available. Please retrain the model.")
+        return None, None
+
+    required_keys = [
+        'workclass', 'education', 'marital-status', 'occupation',
+        'relationship', 'race', 'sex', 'native-country'
+    ]
+
+    # Ensure all encoders are present
+    missing = [key for key in required_keys if key not in encoders]
+    if missing:
+        st.error(f"❌ Missing encoders for: {', '.join(missing)}. Please check your dataset or retrain the model.")
+        return None, None
 
     age = st.slider("Age", 18, 90, 30)
     workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
@@ -158,6 +164,7 @@ def user_input():
     }
 
     return pd.DataFrame([input_dict]), readable_input
+
 
 # ----------------- Prediction ------------------
 input_df, readable_input = user_input()
