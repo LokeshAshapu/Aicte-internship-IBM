@@ -16,7 +16,7 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = [
     'age', 'workclass', 'fnlwgt', 'education', 'educational-num',
-    'marital-status', 'occupation', 'relationship', 'race', 'sex',
+    'marital-status', 'occupation', 'relationship', 'race', 'gender',
     'capital-gain', 'capital-loss', 'hours-per-week', 'native-country'
 ]
 
