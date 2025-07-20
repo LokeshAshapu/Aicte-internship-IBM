@@ -66,11 +66,12 @@ def safe_load_or_train():
                     st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
                     retrain = True
 
-            for col in FEATURE_COLUMNS + ['income']:
+            for col in ['education', 'occupation', 'gender', 'income']:
                 if col not in encoders:
                     st.warning(f"Encoder for '{col}' is missing. Triggering retrain.")
                     retrain = True
                     break
+
         else:
             retrain = True
 
