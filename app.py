@@ -16,7 +16,7 @@ ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = [
     'age', 'workclass', 'fnlwgt', 'education', 'educational-num',
-    'marital-status', 'occupation', 'relationship', 'race', 'gender',
+    'marital-status', 'occupation', 'relationship', 'race', 'sex',
     'capital-gain', 'capital-loss', 'hours-per-week', 'native-country'
 ]
 
@@ -61,7 +61,6 @@ def safe_load_or_train():
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
 
-            # Check for version compatibility
             if hasattr(model, '_sklearn_version'):
                 model_version = model._sklearn_version
                 current_version = sklearn.__version__
@@ -69,7 +68,6 @@ def safe_load_or_train():
                     st.warning(f"Incompatible model version: trained on {model_version}, current is {current_version}")
                     retrain = True
 
-            # Ensure all required encoders exist
             for col in ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'native-country', 'income']:
                 if col not in encoders:
                     st.warning(f"Encoder for '{col}' is missing. Triggering retrain.")
@@ -88,6 +86,8 @@ def safe_load_or_train():
         st.warning(f"⚠️ Model loading failed: {e} - Re-training now...")
         model, encoders, acc, rmse = train_model()
         trained = True
+
+safe_load_or_train()
 
 # ----------------- Streamlit UI ------------------
 st.set_page_config(page_title="Income Classifier", layout="centered")
@@ -108,7 +108,6 @@ def user_input():
         'relationship', 'race', 'sex', 'native-country'
     ]
 
-    # Ensure all encoders are present
     missing = [key for key in required_keys if key not in encoders]
     if missing:
         st.error(f"❌ Missing encoders for: {', '.join(missing)}. Please check your dataset or retrain the model.")
@@ -165,7 +164,6 @@ def user_input():
 
     return pd.DataFrame([input_dict]), readable_input
 
-
 # ----------------- Prediction ------------------
 input_df, readable_input = user_input()
 
@@ -220,8 +218,8 @@ if encoders:
         st.sidebar.markdown(f"**{col}**: {list(le.classes_)}")
 else:
     st.sidebar.warning("Encoders not loaded. Please retrain the model.")
+
 if st.sidebar.button("🔁 Retrain Model"):
     with st.spinner("Retraining model..."):
         model, encoders, acc, rmse = train_model()
         st.sidebar.success("✅ Model retrained!")
-
