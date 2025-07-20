@@ -19,6 +19,7 @@ FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-pe
 model = None
 encoders = None
 trained = False
+DATA_PATH = "data.csv"  # Update this to the correct file path
 
 # ----------------- Train Model ------------------
 def train_model():
