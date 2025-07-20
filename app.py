@@ -46,7 +46,6 @@ def train_model():
     joblib.dump(clf, MODEL_PATH)
     joblib.dump(enc, ENCODER_PATH)
 
-    # Compatibility-safe RMSE
     mse = mean_squared_error(y_test, clf.predict(X_test))
     rmse = mse ** 0.5
 
@@ -60,7 +59,6 @@ def safe_load_or_train():
             model = joblib.load(MODEL_PATH)
             encoders = joblib.load(ENCODER_PATH)
 
-            # Check for version compatibility
             if hasattr(model, '_sklearn_version'):
                 model_version = model._sklearn_version
                 current_version = sklearn.__version__
@@ -74,7 +72,6 @@ def safe_load_or_train():
         model, encoders, acc, rmse = train_model()
         trained = True
 
-# Call safe load/train
 safe_load_or_train()
 
 # ----------------- Streamlit UI ------------------
@@ -84,22 +81,26 @@ st.title("💼 Income Classification App")
 if trained:
     st.markdown("✅ **Model Ready for Prediction**")
 
-# ----------------- User Input ------------------
 def user_input():
+    st.markdown("### 📝 Enter your details below")
     age = st.slider("Age", 18, 90, 30)
-    workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
-    fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
-    education = st.selectbox("Education", encoders["education"].classes_)
-    education_num = st.slider("Education Number", 1, 16, 10)
-    marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
-    occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
-    relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
-    race = st.selectbox("Race", encoders["race"].classes_)
-    gender = st.selectbox("Gender", encoders["sex"].classes_)
-    capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
-    capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
-    hours_per_week = st.slider("Hours per Week", 1, 99, 40)
-    native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
+    try:
+        workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
+        fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
+        education = st.selectbox("Education", encoders["education"].classes_)
+        education_num = st.slider("Education Number", 1, 16, 10)
+        marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
+        occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
+        relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
+        race = st.selectbox("Race", encoders["race"].classes_)
+        gender = st.selectbox("Gender", encoders["sex"].classes_)
+        capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
+        capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
+        hours_per_week = st.slider("Hours per Week", 1, 99, 40)
+        native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
+    except KeyError as e:
+        st.error(f"Encoder missing for column: {e}. Please retrain the model.")
+        return None, None
 
     input_dict = {
         "age": age,
@@ -140,40 +141,41 @@ def user_input():
 # ----------------- Prediction ------------------
 input_df, readable_input = user_input()
 
-try:
-    input_df = input_df[FEATURE_COLUMNS]
+if input_df is not None:
+    try:
+        input_df = input_df[FEATURE_COLUMNS]
 
-    if input_df.isnull().values.any():
-        st.error("❌ Some required fields are missing.")
-    else:
-        try:
-            pred = model.predict(input_df)[0]
-            prob = model.predict_proba(input_df)[0]
-        except AttributeError:
-            st.error("🚨 Prediction failed due to model incompatibility. Retraining...")
-            model, encoders, acc, rmse = train_model()
-            pred = model.predict(input_df)[0]
-            prob = model.predict_proba(input_df)[0]
+        if input_df.isnull().values.any():
+            st.error("❌ Some required fields are missing.")
+        else:
+            try:
+                pred = model.predict(input_df)[0]
+                prob = model.predict_proba(input_df)[0]
+            except AttributeError as err:
+                st.error("🚨 Prediction failed due to model incompatibility. Retraining...")
+                model, encoders, acc, rmse = train_model()
+                pred = model.predict(input_df)[0]
+                prob = model.predict_proba(input_df)[0]
 
-        label = encoders["income"].inverse_transform([pred])[0]
-        confidence = prob[pred] * 100
+            label = encoders["income"].inverse_transform([pred])[0]
+            confidence = prob[pred] * 100
 
-        st.success(f"💰 Predicted Income Category: `{label}`")
-        st.info(f"🔐 Confidence: `{confidence:.2f}%`")
+            st.success(f"💰 Predicted Income Category: `{label}`")
+            st.info(f"🔐 Confidence: `{confidence:.2f}%`")
 
-        st.markdown("### 🧾 Your Inputs")
-        st.table(pd.DataFrame([readable_input]))
+            st.markdown("### 🧾 Your Inputs")
+            st.table(pd.DataFrame([readable_input]))
 
-        st.markdown("### 📊 Prediction Probabilities")
-        prob_df = pd.DataFrame({
-            "Category": encoders["income"].classes_,
-            "Probability": prob
-        })
-        st.bar_chart(prob_df.set_index("Category"))
+            st.markdown("### 📊 Prediction Probabilities")
+            prob_df = pd.DataFrame({
+                "Category": encoders["income"].classes_,
+                "Probability": prob
+            })
+            st.bar_chart(prob_df.set_index("Category"))
 
-except Exception as e:
-    st.error("🚨 Unexpected error during prediction.")
-    st.exception(e)
+    except Exception as e:
+        st.error("🚨 Unexpected error during prediction.")
+        st.exception(e)
 
 # ----------------- Sidebar ------------------
 st.sidebar.header("🔍 Model & Encoders")
