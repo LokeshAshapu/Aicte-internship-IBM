@@ -79,7 +79,7 @@ def user_input():
     }
     return pd.DataFrame([input_dict]), readable
 
-FEATURE_COLUMNS = ["age", "education", "marital-status", "occupation", "hours-per-week", "gender"]
+input_df, readable_input = user_input()
 
 # Ensure feature order and no missing values
 input_df = input_df[FEATURE_COLUMNS]
