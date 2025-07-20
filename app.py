@@ -15,9 +15,7 @@ MODEL_PATH = os.path.join(MODEL_DIR, "income_classifier.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoders.pkl")
 CSV_PATH = "adult 3.csv"
 FEATURE_COLUMNS = [
-    'age', 'workclass', 'fnlwgt', 'education', 'educational-num',
-    'marital-status', 'occupation', 'relationship', 'race', 'gender',
-    'capital-gain', 'capital-loss', 'hours-per-week', 'native-country'
+    'age', 'education', 'occupation', 'hours-per-week', 'gender'
 ]
 
 model = None
@@ -28,7 +26,7 @@ trained = False
 def train_model():
     df = pd.read_csv(CSV_PATH)
 
-    X = df.drop("income", axis=1)
+    X = df[FEATURE_COLUMNS]
     y = df["income"]
 
     enc = {}
@@ -103,63 +101,32 @@ def user_input():
         st.error("❌ Encoders not available. Please retrain the model.")
         return None, None
 
-    required_keys = [
-        'workclass', 'education', 'marital-status', 'occupation',
-        'relationship', 'race', 'gender', 'native-country'
-    ]
-
+    required_keys = ['education', 'occupation', 'gender']
     missing = [key for key in required_keys if key not in encoders]
     if missing:
         st.error(f"❌ Missing encoders for: {', '.join(missing)}. Please check your dataset or retrain the model.")
         return None, None
 
     age = st.slider("Age", 18, 90, 30)
-    workclass = st.selectbox("Workclass", encoders["workclass"].classes_)
-    fnlwgt = st.number_input("Final Weight", min_value=10000, max_value=1000000, value=300000)
     education = st.selectbox("Education", encoders["education"].classes_)
-    education_num = st.slider("Education Number", 1, 16, 10)
-    marital_status = st.selectbox("Marital Status", encoders["marital-status"].classes_)
     occupation = st.selectbox("Occupation", encoders["occupation"].classes_)
-    relationship = st.selectbox("Relationship", encoders["relationship"].classes_)
-    race = st.selectbox("Race", encoders["race"].classes_)
-    gender = st.selectbox("Gender", encoders["gender"].classes_)
-    capital_gain = st.number_input("Capital Gain", min_value=0, max_value=99999, value=0)
-    capital_loss = st.number_input("Capital Loss", min_value=0, max_value=99999, value=0)
     hours_per_week = st.slider("Hours per Week", 1, 99, 40)
-    native_country = st.selectbox("Native Country", encoders["native-country"].classes_)
+    gender = st.selectbox("Gender", encoders["gender"].classes_)
 
     input_dict = {
         "age": age,
-        "workclass": encoders["workclass"].transform([workclass])[0],
-        "fnlwgt": fnlwgt,
         "education": encoders["education"].transform([education])[0],
-        "educational-num": education_num,
-        "marital-status": encoders["marital-status"].transform([marital_status])[0],
         "occupation": encoders["occupation"].transform([occupation])[0],
-        "relationship": encoders["relationship"].transform([relationship])[0],
-        "race": encoders["race"].transform([race])[0],
-        "gender": encoders["gender"].transform([gender])[0],
-        "capital-gain": capital_gain,
-        "capital-loss": capital_loss,
         "hours-per-week": hours_per_week,
-        "native-country": encoders["native-country"].transform([native_country])[0],
+        "gender": encoders["gender"].transform([gender])[0],
     }
 
     readable_input = {
         "Age": age,
-        "Workclass": workclass,
-        "Fnlwgt": fnlwgt,
         "Education": education,
-        "Education Num": education_num,
-        "Marital Status": marital_status,
         "Occupation": occupation,
-        "Relationship": relationship,
-        "Race": race,
-        "Gender": gender,
-        "Capital Gain": capital_gain,
-        "Capital Loss": capital_loss,
         "Hours per Week": hours_per_week,
-        "Native Country": native_country
+        "Gender": gender
     }
 
     return pd.DataFrame([input_dict]), readable_input
